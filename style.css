@@ -337,6 +337,39 @@ h3 { font-size: 1rem; margin: 0 0 8px; color: var(--text-dim); }
 
 .chart-wrap { background: var(--glass); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid var(--glass-border); border-radius: var(--radius); padding: 12px; margin-bottom: 12px; }
 
+.auth-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(6, 6, 9, 0.55);
+}
+.auth-overlay.hidden { display: none; }
+.auth-card {
+  width: 100%;
+  max-width: 380px;
+  background: var(--glass-strong);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  border: 1px solid var(--glass-border);
+  border-top: 3px solid var(--red);
+  border-radius: 16px;
+  padding: 24px 20px;
+  box-shadow: 0 20px 60px -20px rgba(0, 0, 0, 0.6);
+}
+.auth-card h1 {
+  font-size: 1.2rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 8px;
+}
+.auth-card p { color: var(--text-dim); font-size: 0.85rem; margin: 0 0 16px; }
+.auth-status { margin-top: 10px; font-size: 0.82rem; color: var(--teal); text-align: center; min-height: 1em; }
+
 table.progress-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
 table.progress-table th, table.progress-table td { text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--border); }
 table.progress-table th { color: var(--text-dim); font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.03em; }

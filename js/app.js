@@ -1,5 +1,5 @@
-import { DB } from './db.js';
-import { suggestNext } from './overload.js';
+import { DB, Auth } from './db.js?v=3';
+import { suggestNext } from './overload.js?v=3';
 
 const SESSION_TYPES = {
   Upper: { label: 'Upper Body', logsExercises: true },
@@ -122,7 +122,46 @@ function formatDisplay(iso) {
 function isToday(iso) { return iso === todayISO(); }
 
 // ---------- init ----------
+const authRoot = document.getElementById('auth-root');
+const authContent = document.getElementById('auth-content');
+let appStarted = false;
+
 async function init() {
+  const { data } = await Auth.getSession();
+  boot(data.session);
+  Auth.onAuthStateChange((_event, session) => boot(session));
+}
+
+function boot(session) {
+  if (!session) {
+    authRoot.classList.remove('hidden');
+    renderAuthScreen();
+    return;
+  }
+  authRoot.classList.add('hidden');
+  if (!appStarted) startApp();
+}
+
+function renderAuthScreen(status) {
+  authContent.innerHTML = `
+    <h1>Gym Tracker</h1>
+    <p>Sign in with email to sync your training across devices.</p>
+    <div class="form-row"><input type="email" id="auth-email" placeholder="you@example.com" /></div>
+    <button class="btn" id="auth-send">Send magic link</button>
+    <div class="auth-status">${status || ''}</div>
+  `;
+  document.getElementById('auth-send').addEventListener('click', async () => {
+    const email = document.getElementById('auth-email').value.trim();
+    if (!email) return;
+    renderAuthScreen('Sending…');
+    const redirectTo = window.location.origin + window.location.pathname;
+    const { error } = await Auth.signInWithOtp(email, redirectTo);
+    renderAuthScreen(error ? error.message : 'Check your email for the sign-in link.');
+  });
+}
+
+async function startApp() {
+  appStarted = true;
   await seedExercises();
   document.querySelectorAll('.tab-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -502,6 +541,7 @@ async function renderExercises() {
     <h2>Exercises</h2>
     <div class="card">${rows || '<div class="empty-state">No exercises yet.</div>'}</div>
     <button class="btn" data-action="new-exercise">+ Add exercise</button>
+    <button class="btn secondary" style="margin-top:8px" data-action="sign-out">Sign out</button>
   `;
 }
 
@@ -673,6 +713,10 @@ async function onViewClick(e) {
   if (action === 'delete-exercise') {
     await DB.delete('exercises', Number(btn.dataset.id));
     return render();
+  }
+  if (action === 'sign-out') {
+    await Auth.signOut();
+    return;
   }
 }
 

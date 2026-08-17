@@ -1,64 +1,79 @@
-const DB_NAME = 'gymTrackerDB';
-const DB_VERSION = 1;
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-let dbPromise = null;
+const SUPABASE_URL = 'https://wtvtmxjhtmhwoieybhyq.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_KBfX4H-LhDeY6fc5U_UZXg_mFgNEzTF';
 
-function openDB() {
-  if (dbPromise) return dbPromise;
-  dbPromise = new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, DB_VERSION);
-    req.onupgradeneeded = (e) => {
-      const db = e.target.result;
-      if (!db.objectStoreNames.contains('exercises')) {
-        const ex = db.createObjectStore('exercises', { keyPath: 'id', autoIncrement: true });
-        ex.createIndex('category', 'category');
-      }
-      if (!db.objectStoreNames.contains('sessions')) {
-        const s = db.createObjectStore('sessions', { keyPath: 'id', autoIncrement: true });
-        s.createIndex('date', 'date');
-        s.createIndex('type', 'type');
-      }
-    };
-    req.onsuccess = (e) => resolve(e.target.result);
-    req.onerror = (e) => reject(e.target.error);
-  });
-  return dbPromise;
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+export const Auth = {
+  getSession: () => supabase.auth.getSession(),
+  onAuthStateChange: (cb) => supabase.auth.onAuthStateChange(cb),
+  signInWithOtp: (email, redirectTo) =>
+    supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: redirectTo } }),
+  signOut: () => supabase.auth.signOut(),
+};
+
+// app.js works in camelCase; these tables use snake_case for the columns that differ.
+const FIELD_MAP = {
+  exercises: { repLow: 'rep_low', repHigh: 'rep_high' },
+  sessions: { durationMin: 'duration_min', distanceKm: 'distance_km' },
+};
+
+function toRow(store, obj) {
+  const map = FIELD_MAP[store] || {};
+  const row = {};
+  for (const [k, v] of Object.entries(obj)) {
+    if (k === 'id') continue;
+    row[map[k] || k] = v;
+  }
+  return row;
 }
 
-function tx(storeName, mode) {
-  return openDB().then((db) => db.transaction(storeName, mode).objectStore(storeName));
+function fromRow(store, row) {
+  const map = FIELD_MAP[store] || {};
+  const inverse = Object.fromEntries(Object.entries(map).map(([a, b]) => [b, a]));
+  const obj = {};
+  for (const [k, v] of Object.entries(row)) {
+    if (k === 'user_id') continue;
+    obj[inverse[k] || k] = v;
+  }
+  return obj;
 }
 
-function wrap(request) {
-  return new Promise((resolve, reject) => {
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
+function check(error) {
+  if (error) throw new Error(error.message);
 }
 
 export const DB = {
   async add(store, obj) {
-    const s = await tx(store, 'readwrite');
-    return wrap(s.add(obj));
+    const { data, error } = await supabase.from(store).insert(toRow(store, obj)).select('id').single();
+    check(error);
+    return data.id;
   },
   async put(store, obj) {
-    const s = await tx(store, 'readwrite');
-    return wrap(s.put(obj));
+    const { id, ...rest } = obj;
+    const { error } = await supabase.from(store).update(toRow(store, rest)).eq('id', id);
+    check(error);
+    return id;
   },
   async get(store, id) {
-    const s = await tx(store, 'readonly');
-    return wrap(s.get(id));
+    const { data, error } = await supabase.from(store).select('*').eq('id', id).maybeSingle();
+    check(error);
+    return data ? fromRow(store, data) : null;
   },
   async delete(store, id) {
-    const s = await tx(store, 'readwrite');
-    return wrap(s.delete(id));
+    const { error } = await supabase.from(store).delete().eq('id', id);
+    check(error);
   },
   async all(store) {
-    const s = await tx(store, 'readonly');
-    return wrap(s.getAll());
+    const { data, error } = await supabase.from(store).select('*');
+    check(error);
+    return data.map((r) => fromRow(store, r));
   },
   async allByIndex(store, indexName, range) {
-    const s = await tx(store, 'readonly');
-    return wrap(s.index(indexName).getAll(range));
+    const value = range.lower;
+    const { data, error } = await supabase.from(store).select('*').eq(indexName, value);
+    check(error);
+    return data.map((r) => fromRow(store, r));
   },
 };
