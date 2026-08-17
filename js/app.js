@@ -1,5 +1,5 @@
-import { DB, Auth } from './db.js?v=5';
-import { suggestNext } from './overload.js?v=5';
+import { DB, Auth } from './db.js?v=6';
+import { suggestNext } from './overload.js?v=6';
 
 const SESSION_TYPES = {
   Upper: { label: 'Upper Body', logsExercises: true },
@@ -227,8 +227,8 @@ async function render() {
 async function renderToday() {
   const date = state.todayDate;
   const sessions = await DB.allByIndex('sessions', 'date', IDBKeyRange.only(date));
-  const am = sessions.find((s) => s.slot === 'AM');
-  const pm = sessions.find((s) => s.slot === 'PM');
+  const am = sessions.filter((s) => s.slot === 'AM');
+  const pm = sessions.filter((s) => s.slot === 'PM');
   const { wd, md } = formatDisplay(date);
 
   viewEl.innerHTML = `
@@ -239,34 +239,24 @@ async function renderToday() {
     </div>
     ${slotCardHtml('AM', am)}
     ${slotCardHtml('PM', pm)}
-    ${!am && !pm ? '<div class="empty-state">Rest day. Add a session above if that changes.</div>' : ''}
+    ${am.length === 0 && pm.length === 0 ? '<div class="empty-state">Rest day. Add a session above if that changes.</div>' : ''}
   `;
 }
 
-function slotCardHtml(slot, session) {
-  if (!session) {
+function slotCardHtml(slot, sessions) {
+  const cards = sessions.map((session) => {
+    const type = sessionLabel(session);
+    let sub = '';
+    if (SESSION_TYPES[session.type]?.logsExercises) {
+      const n = (session.entries || []).length;
+      sub = n === 0 ? 'No exercises logged yet' : `${n} exercise${n === 1 ? '' : 's'}`;
+    } else {
+      const parts = [];
+      if (session.durationMin) parts.push(`${session.durationMin} min`);
+      if (session.distanceKm) parts.push(`${session.distanceKm} km`);
+      sub = parts.length ? parts.join(' · ') : 'Tap to add details';
+    }
     return `
-      <div class="slot-card">
-        <div class="slot-label">${slot}</div>
-        <div class="slot-empty">
-          <button class="add-btn" data-action="new-session" data-slot="${slot}">+ Add ${slot} session</button>
-        </div>
-      </div>`;
-  }
-  const type = sessionLabel(session);
-  let sub = '';
-  if (SESSION_TYPES[session.type]?.logsExercises) {
-    const n = (session.entries || []).length;
-    sub = n === 0 ? 'No exercises logged yet' : `${n} exercise${n === 1 ? '' : 's'}`;
-  } else {
-    const parts = [];
-    if (session.durationMin) parts.push(`${session.durationMin} min`);
-    if (session.distanceKm) parts.push(`${session.distanceKm} km`);
-    sub = parts.length ? parts.join(' · ') : 'Tap to add details';
-  }
-  return `
-    <div class="slot-card">
-      <div class="slot-label">${slot}</div>
       <div class="session-card" data-action="open-session" data-id="${session.id}">
         <span class="type-dot type-${session.type}"></span>
         <div>
@@ -274,7 +264,14 @@ function slotCardHtml(slot, session) {
           <div class="session-sub">${sub}</div>
         </div>
         <span class="chip ${session.completed ? 'done' : ''}">${session.completed ? 'Done' : 'Planned'}</span>
-      </div>
+      </div>`;
+  }).join('');
+
+  return `
+    <div class="slot-card">
+      <div class="slot-label">${slot}</div>
+      ${cards}
+      <button class="add-btn" data-action="new-session" data-slot="${slot}">+ Add ${slot} session</button>
     </div>`;
 }
 
