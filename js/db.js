@@ -3,7 +3,12 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const SUPABASE_URL = 'https://wtvtmxjhtmhwoieybhyq.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_KBfX4H-LhDeY6fc5U_UZXg_mFgNEzTF';
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Browsers will happily serve a cached response for an identical GET request
+// (e.g. re-fetching the same session by id) unless told not to — without this,
+// re-opening a session after editing it can show stale data.
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  global: { fetch: (input, init) => fetch(input, { ...init, cache: 'no-store' }) },
+});
 
 export const Auth = {
   getSession: () => supabase.auth.getSession(),
@@ -18,7 +23,7 @@ export const Auth = {
 // app.js works in camelCase; these tables use snake_case for the columns that differ.
 const FIELD_MAP = {
   exercises: { repLow: 'rep_low', repHigh: 'rep_high' },
-  sessions: { durationMin: 'duration_min', distanceKm: 'distance_km' },
+  sessions: { durationMin: 'duration_min', distanceKm: 'distance_km', createdAt: 'created_at', updatedAt: 'updated_at' },
 };
 
 function toRow(store, obj) {

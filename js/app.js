@@ -1,5 +1,5 @@
-import { DB, Auth } from './db.js?v=7';
-import { suggestNext } from './overload.js?v=7';
+import { DB, Auth } from './db.js?v=10';
+import { suggestNext } from './overload.js?v=10';
 
 const SESSION_TYPES = {
   Upper: { label: 'Upper Body', logsExercises: true },
@@ -134,6 +134,7 @@ async function init() {
 
 function boot(session) {
   if (!session) {
+    appStarted = false;
     authRoot.classList.remove('hidden');
     renderAuthScreen();
     return;
@@ -183,6 +184,7 @@ function renderAuthScreen(status) {
 
 async function startApp() {
   appStarted = true;
+  viewEl.innerHTML = '<div class="empty-state">Setting up your account…</div>';
   await seedExercises();
   document.querySelectorAll('.tab-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -205,9 +207,8 @@ async function startApp() {
 async function seedExercises() {
   const existing = await DB.all('exercises');
   const existingNames = new Set(existing.map((e) => e.name));
-  for (const ex of EXERCISE_DEFS) {
-    if (!existingNames.has(ex.name)) await DB.add('exercises', { ...ex });
-  }
+  const missing = EXERCISE_DEFS.filter((ex) => !existingNames.has(ex.name));
+  await Promise.all(missing.map((ex) => DB.add('exercises', { ...ex })));
 }
 
 async function findOrCreateExercise(name) {
@@ -319,7 +320,6 @@ async function createSession(type, slot, template) {
     distanceKm: null,
     notes: '',
     completed: false,
-    createdAt: Date.now(),
   };
   if (template && TEMPLATES[template]) {
     for (const [name, setCount] of TEMPLATES[template].items) {
@@ -432,7 +432,7 @@ async function lastEntryForExercise(exerciseId, excludeSessionId, beforeDate) {
 }
 
 async function saveSession(session) {
-  session.updatedAt = Date.now();
+  session.updatedAt = new Date().toISOString();
   await DB.put('sessions', session);
 }
 
