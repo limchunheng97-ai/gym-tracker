@@ -1,5 +1,5 @@
-import { DB, Auth } from './db.js?v=4';
-import { suggestNext } from './overload.js?v=4';
+import { DB, Auth } from './db.js?v=5';
+import { suggestNext } from './overload.js?v=5';
 
 const SESSION_TYPES = {
   Upper: { label: 'Upper Body', logsExercises: true },
@@ -142,49 +142,34 @@ function boot(session) {
   if (!appStarted) startApp();
 }
 
-let pendingAuthEmail = null;
+let authMode = 'signin'; // 'signin' | 'signup'
 
 function renderAuthScreen(status) {
-  if (pendingAuthEmail) return renderCodeScreen(status);
+  const isSignup = authMode === 'signup';
   authContent.innerHTML = `
     <h1>Gym Tracker</h1>
-    <p>Sign in with email to sync your training across devices.</p>
-    <div class="form-row"><input type="email" id="auth-email" placeholder="you@example.com" /></div>
-    <button class="btn" id="auth-send">Send code</button>
-    <div class="auth-status">${status || ''}</div>
-  `;
-  document.getElementById('auth-email').addEventListener('keydown', (e) => { if (e.key === 'Enter') document.getElementById('auth-send').click(); });
-  document.getElementById('auth-send').addEventListener('click', async () => {
-    const email = document.getElementById('auth-email').value.trim();
-    if (!email) return;
-    renderAuthScreen('Sending…');
-    const { error } = await Auth.requestCode(email);
-    if (error) { renderAuthScreen(error.message); return; }
-    pendingAuthEmail = email;
-    renderCodeScreen('Code sent — check your email (and spam folder).');
-  });
-}
-
-function renderCodeScreen(status) {
-  authContent.innerHTML = `
-    <h1>Gym Tracker</h1>
-    <p>Enter the 6-digit code sent to <strong>${pendingAuthEmail}</strong>.</p>
-    <div class="form-row"><input type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" id="auth-code" placeholder="123456" /></div>
-    <button class="btn" id="auth-verify">Verify</button>
-    <button class="link-btn" id="auth-back" style="width:100%;text-align:center;margin-top:8px">Use a different email</button>
+    <p>${isSignup ? 'Create an account to sync your training across devices.' : 'Sign in to sync your training across devices.'}</p>
+    <div class="form-row"><input type="email" id="auth-email" placeholder="you@example.com" autocomplete="username" /></div>
+    <div class="form-row"><input type="password" id="auth-password" placeholder="Password" autocomplete="${isSignup ? 'new-password' : 'current-password'}" /></div>
+    <button class="btn" id="auth-submit">${isSignup ? 'Create account' : 'Sign in'}</button>
+    <button class="link-btn" id="auth-toggle" style="width:100%;text-align:center;margin-top:8px">${isSignup ? 'Already have an account? Sign in' : "First time? Create an account"}</button>
     <div class="auth-status">${status || ''}</div>
   `;
   const submit = async () => {
-    const code = document.getElementById('auth-code').value.trim();
-    if (!code) return;
-    renderCodeScreen('Verifying…');
-    const { error } = await Auth.verifyCode(pendingAuthEmail, code);
-    if (error) renderCodeScreen(error.message);
+    const email = document.getElementById('auth-email').value.trim();
+    const password = document.getElementById('auth-password').value;
+    if (!email || !password) return;
+    renderAuthScreen(isSignup ? 'Creating account…' : 'Signing in…');
+    const { error } = isSignup ? await Auth.signUp(email, password) : await Auth.signIn(email, password);
+    if (error) renderAuthScreen(error.message);
     // on success, onAuthStateChange fires boot() with the new session
   };
-  document.getElementById('auth-code').addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
-  document.getElementById('auth-verify').addEventListener('click', submit);
-  document.getElementById('auth-back').addEventListener('click', () => { pendingAuthEmail = null; renderAuthScreen(); });
+  document.getElementById('auth-password').addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
+  document.getElementById('auth-submit').addEventListener('click', submit);
+  document.getElementById('auth-toggle').addEventListener('click', () => {
+    authMode = isSignup ? 'signin' : 'signup';
+    renderAuthScreen();
+  });
 }
 
 async function startApp() {
