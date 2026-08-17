@@ -1,4 +1,4 @@
-const CACHE = 'gym-tracker-v1';
+const CACHE = 'gym-tracker-v2';
 const ASSETS = [
   './',
   './index.html',
@@ -8,6 +8,7 @@ const ASSETS = [
   './js/db.js',
   './js/overload.js',
   './icons/icon.svg',
+  './icons/hero.jpg',
 ];
 
 self.addEventListener('install', (e) => {

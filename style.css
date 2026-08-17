@@ -21,6 +21,9 @@
   --run: #4fb6ff;
   --custom: #9b8cf2;
   --radius: 10px;
+  --glass: rgba(18, 20, 28, 0.62);
+  --glass-strong: rgba(15, 16, 23, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.08);
 }
 
 * { box-sizing: border-box; }
@@ -37,10 +40,13 @@ html, body {
 body {
   background-color: var(--bg);
   background-image:
-    radial-gradient(900px 460px at 12% -8%, rgba(228, 42, 69, 0.16), transparent 60%),
-    radial-gradient(760px 420px at 100% 0%, rgba(232, 172, 62, 0.11), transparent 55%),
-    radial-gradient(700px 500px at 50% 110%, rgba(42, 217, 200, 0.08), transparent 60%),
-    repeating-linear-gradient(135deg, rgba(255,255,255,0.014) 0px, rgba(255,255,255,0.014) 1px, transparent 1px, transparent 22px);
+    linear-gradient(180deg, rgba(8, 9, 13, 0.35) 0%, rgba(8, 9, 13, 0.8) 42%, rgba(8, 9, 13, 0.95) 78%, rgba(8, 9, 13, 0.98) 100%),
+    radial-gradient(900px 460px at 12% -8%, rgba(228, 42, 69, 0.22), transparent 55%),
+    radial-gradient(760px 420px at 100% 0%, rgba(232, 172, 62, 0.16), transparent 50%),
+    url('icons/hero.jpg');
+  background-repeat: no-repeat;
+  background-position: center, center, center, center 18%;
+  background-size: cover;
   background-attachment: fixed;
 }
 
@@ -57,6 +63,9 @@ body {
   padding: calc(env(safe-area-inset-top, 0px) + 18px) 16px 14px;
   border-bottom: 1px solid var(--border);
   overflow: hidden;
+  background: rgba(8, 9, 13, 0.3);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 .topbar::before {
   content: "";
@@ -153,8 +162,10 @@ h3 { font-size: 1rem; margin: 0 0 8px; color: var(--text-dim); }
 .date-nav .date-label .sub { display: block; font-size: 0.75rem; color: var(--text-dim); font-weight: 400; }
 
 .slot-card {
-  background: linear-gradient(180deg, var(--surface) 0%, var(--bg-2) 100%);
-  border: 1px solid var(--border);
+  background: var(--glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius);
   padding: 14px;
   margin-bottom: 12px;
@@ -214,15 +225,17 @@ h3 { font-size: 1rem; margin: 0 0 8px; color: var(--text-dim); }
 }
 
 .card {
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: var(--glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius);
   padding: 14px;
   margin-bottom: 12px;
 }
 
 .week-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px; }
-.week-summary .stat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px; text-align: center; }
+.week-summary .stat { background: var(--glass); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid var(--glass-border); border-radius: var(--radius); padding: 10px; text-align: center; }
 .week-summary .stat .n { font-size: 1.3rem; font-weight: 800; }
 .week-summary .stat .l { font-size: 0.64rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
 .week-summary .stat.ok { border-color: rgba(42, 217, 200, 0.4); }
@@ -273,7 +286,7 @@ h3 { font-size: 1rem; margin: 0 0 8px; color: var(--text-dim); }
 .btn-row { display: flex; gap: 8px; margin-top: 10px; }
 .btn-row .btn { flex: 1; }
 
-.exercise-entry { border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; margin-bottom: 12px; background: var(--surface); border-left: 3px solid var(--teal); }
+.exercise-entry { border: 1px solid var(--glass-border); border-radius: var(--radius); padding: 12px; margin-bottom: 12px; background: var(--glass); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-left: 3px solid var(--teal); }
 .exercise-entry-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
 .exercise-entry-head .name { font-weight: 700; }
 .suggestion { font-size: 0.78rem; color: var(--gold); background: rgba(232, 172, 62, 0.1); border: 1px solid rgba(232, 172, 62, 0.25); border-radius: 8px; padding: 8px 10px; margin: 8px 0; }
@@ -296,8 +309,10 @@ h3 { font-size: 1rem; margin: 0 0 8px; color: var(--text-dim); }
 }
 .modal-overlay.hidden { display: none; }
 .modal-content {
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: var(--glass-strong);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
   border-bottom: none;
   border-radius: 18px 18px 0 0;
   padding: 18px;
@@ -320,7 +335,7 @@ h3 { font-size: 1rem; margin: 0 0 8px; color: var(--text-dim); }
   cursor: pointer;
 }
 
-.chart-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; margin-bottom: 12px; }
+.chart-wrap { background: var(--glass); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid var(--glass-border); border-radius: var(--radius); padding: 12px; margin-bottom: 12px; }
 
 table.progress-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
 table.progress-table th, table.progress-table td { text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--border); }
