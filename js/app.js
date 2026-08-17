@@ -1,5 +1,5 @@
-import { DB, Auth } from './db.js?v=6';
-import { suggestNext } from './overload.js?v=6';
+import { DB, Auth } from './db.js?v=7';
+import { suggestNext } from './overload.js?v=7';
 
 const SESSION_TYPES = {
   Upper: { label: 'Upper Body', logsExercises: true },
@@ -160,9 +160,18 @@ function renderAuthScreen(status) {
     const password = document.getElementById('auth-password').value;
     if (!email || !password) return;
     renderAuthScreen(isSignup ? 'Creating account…' : 'Signing in…');
-    const { error } = isSignup ? await Auth.signUp(email, password) : await Auth.signIn(email, password);
-    if (error) renderAuthScreen(error.message);
-    // on success, onAuthStateChange fires boot() with the new session
+    try {
+      const { data, error } = isSignup ? await Auth.signUp(email, password) : await Auth.signIn(email, password);
+      if (error) { renderAuthScreen(error.message); return; }
+      if (isSignup && !data.session) {
+        authMode = 'signin';
+        renderAuthScreen('Account created but "Confirm email" is still on in Supabase (Authentication -> Providers -> Email) — turn it off, then sign in below.');
+        return;
+      }
+      // on success with a session, onAuthStateChange fires boot() with the new session
+    } catch (e) {
+      renderAuthScreen(e.message || 'Something went wrong — try again.');
+    }
   };
   document.getElementById('auth-password').addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
   document.getElementById('auth-submit').addEventListener('click', submit);
