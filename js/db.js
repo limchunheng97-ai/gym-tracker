@@ -8,8 +8,10 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 export const Auth = {
   getSession: () => supabase.auth.getSession(),
   onAuthStateChange: (cb) => supabase.auth.onAuthStateChange(cb),
-  signInWithOtp: (email, redirectTo) =>
-    supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: redirectTo } }),
+  // No emailRedirectTo / link click involved — sends a 6-digit code instead,
+  // which works the same regardless of which device you open the email on.
+  requestCode: (email) => supabase.auth.signInWithOtp({ email }),
+  verifyCode: (email, token) => supabase.auth.verifyOtp({ email, token, type: 'email' }),
   signOut: () => supabase.auth.signOut(),
 };
 

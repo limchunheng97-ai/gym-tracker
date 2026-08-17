@@ -1,5 +1,5 @@
-import { DB, Auth } from './db.js?v=3';
-import { suggestNext } from './overload.js?v=3';
+import { DB, Auth } from './db.js?v=4';
+import { suggestNext } from './overload.js?v=4';
 
 const SESSION_TYPES = {
   Upper: { label: 'Upper Body', logsExercises: true },
@@ -142,22 +142,49 @@ function boot(session) {
   if (!appStarted) startApp();
 }
 
+let pendingAuthEmail = null;
+
 function renderAuthScreen(status) {
+  if (pendingAuthEmail) return renderCodeScreen(status);
   authContent.innerHTML = `
     <h1>Gym Tracker</h1>
     <p>Sign in with email to sync your training across devices.</p>
     <div class="form-row"><input type="email" id="auth-email" placeholder="you@example.com" /></div>
-    <button class="btn" id="auth-send">Send magic link</button>
+    <button class="btn" id="auth-send">Send code</button>
     <div class="auth-status">${status || ''}</div>
   `;
+  document.getElementById('auth-email').addEventListener('keydown', (e) => { if (e.key === 'Enter') document.getElementById('auth-send').click(); });
   document.getElementById('auth-send').addEventListener('click', async () => {
     const email = document.getElementById('auth-email').value.trim();
     if (!email) return;
     renderAuthScreen('Sending…');
-    const redirectTo = window.location.origin + window.location.pathname;
-    const { error } = await Auth.signInWithOtp(email, redirectTo);
-    renderAuthScreen(error ? error.message : 'Check your email for the sign-in link.');
+    const { error } = await Auth.requestCode(email);
+    if (error) { renderAuthScreen(error.message); return; }
+    pendingAuthEmail = email;
+    renderCodeScreen('Code sent — check your email (and spam folder).');
   });
+}
+
+function renderCodeScreen(status) {
+  authContent.innerHTML = `
+    <h1>Gym Tracker</h1>
+    <p>Enter the 6-digit code sent to <strong>${pendingAuthEmail}</strong>.</p>
+    <div class="form-row"><input type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" id="auth-code" placeholder="123456" /></div>
+    <button class="btn" id="auth-verify">Verify</button>
+    <button class="link-btn" id="auth-back" style="width:100%;text-align:center;margin-top:8px">Use a different email</button>
+    <div class="auth-status">${status || ''}</div>
+  `;
+  const submit = async () => {
+    const code = document.getElementById('auth-code').value.trim();
+    if (!code) return;
+    renderCodeScreen('Verifying…');
+    const { error } = await Auth.verifyCode(pendingAuthEmail, code);
+    if (error) renderCodeScreen(error.message);
+    // on success, onAuthStateChange fires boot() with the new session
+  };
+  document.getElementById('auth-code').addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
+  document.getElementById('auth-verify').addEventListener('click', submit);
+  document.getElementById('auth-back').addEventListener('click', () => { pendingAuthEmail = null; renderAuthScreen(); });
 }
 
 async function startApp() {
