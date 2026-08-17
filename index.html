@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Gym Tracker</title>
+<meta name="theme-color" content="#0a0b0f" />
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="icons/icon.svg" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <h1>Gym Tracker</h1>
+  </header>
+
+  <main id="view" class="view"></main>
+
+  <nav class="tabbar">
+    <button data-nav="today" class="tab-btn">Today</button>
+    <button data-nav="week" class="tab-btn">Week</button>
+    <button data-nav="history" class="tab-btn">History</button>
+    <button data-nav="progress" class="tab-btn">Progress</button>
+    <button data-nav="exercises" class="tab-btn">Exercises</button>
+  </nav>
+</div>
+
+<div id="modal-root" class="modal-overlay hidden">
+  <div id="modal-content" class="modal-content"></div>
+</div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
