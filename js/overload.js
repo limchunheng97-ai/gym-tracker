@@ -1,12 +1,25 @@
-// Double progression: work within a rep range at a fixed weight.
-// Hit the top of the range on every set -> add weight, drop back to the bottom of the range.
-// Hit the range but not the top -> repeat the weight, aim for more reps.
-// Miss the bottom of the range -> repeat the weight and target as-is (or flag a deload after repeated misses).
+// Volume-aware double progression: instead of judging readiness to progress purely off
+// last session's reps, compare last session's total volume (sum of weight*reps) at the
+// current working weight against the BEST volume you've ever put up at that same weight,
+// across every past session. This guards against a one-off bad session (illness, fatigue,
+// a bad night's sleep) reading as "ready to progress" or "needs to repeat" just because it
+// happened to be the most recent one — the benchmark is your proven best, not your last try.
+//
+// Hit (or beat) your best-ever volume at this weight AND hit the top of the rep range on
+//   every set -> add weight, drop back to the bottom of the range.
+// Hit (or beat) your best-ever volume at this weight but didn't top out reps -> repeat the
+//   weight, aim for more reps.
+// Fell short of your best-ever volume at this weight -> repeat the weight; you're below
+//   what you've already proven you can do, so re-earn it before adding load.
 
-export function suggestNext(exercise, lastEntry) {
+export function suggestNext(exercise, allEntries) {
   const { repLow, repHigh, increment, unit } = exercise;
 
-  if (!lastEntry || !lastEntry.sets || lastEntry.sets.length === 0) {
+  const sessions = (allEntries || [])
+    .map((entry) => (entry.sets || []).filter((s) => s.weight != null && s.reps != null))
+    .filter((sets) => sets.length > 0);
+
+  if (sessions.length === 0) {
     return {
       weight: null,
       targetReps: repLow,
@@ -14,37 +27,55 @@ export function suggestNext(exercise, lastEntry) {
     };
   }
 
-  const sets = lastEntry.sets.filter((s) => s.weight != null && s.reps != null);
-  if (sets.length === 0) {
-    return { weight: null, targetReps: repLow, note: 'No completed sets logged last time.' };
-  }
+  const lastSets = sessions[sessions.length - 1];
+  const lastWeight = lastSets[lastSets.length - 1].weight;
+  const lastVolume = volumeOf(lastSets);
+  const lastMinReps = Math.min(...lastSets.map((s) => s.reps));
+  const lastAllHitTop = lastSets.every((s) => s.reps >= repHigh);
+  const lastAllHitBottom = lastSets.every((s) => s.reps >= repLow);
 
-  const lastWeight = sets[sets.length - 1].weight;
-  const allHitTop = sets.every((s) => s.reps >= repHigh);
-  const allHitBottom = sets.every((s) => s.reps >= repLow);
-  const minReps = Math.min(...sets.map((s) => s.reps));
+  // Best volume ever logged at this exact weight, across every past session (including this last one).
+  const bestVolumeAtWeight = sessions.reduce((best, sets) => {
+    const atWeight = sets.filter((s) => s.weight === lastWeight);
+    if (atWeight.length === 0) return best;
+    return Math.max(best, volumeOf(atWeight));
+  }, 0);
 
-  if (allHitTop) {
+  const metBestVolume = lastVolume >= bestVolumeAtWeight;
+
+  if (metBestVolume && lastAllHitTop) {
     return {
       weight: round(lastWeight + increment, unit),
       targetReps: repLow,
-      note: `Hit ${repHigh}+ reps on every set last time — add ${increment}${unit}.`,
+      note: `Matched your best-ever volume at ${lastWeight}${unit} (${lastVolume}) and hit ${repHigh}+ on every set — add ${increment}${unit}.`,
     };
   }
 
-  if (allHitBottom) {
+  if (metBestVolume && lastAllHitBottom) {
     return {
       weight: lastWeight,
-      targetReps: Math.min(repHigh, minReps + 1),
-      note: `Same weight, push for more reps (last time: ${minReps} on your worst set).`,
+      targetReps: Math.min(repHigh, lastMinReps + 1),
+      note: `At or above your best volume for ${lastWeight}${unit} (${lastVolume}) — same weight, push for more reps.`,
+    };
+  }
+
+  if (!metBestVolume) {
+    return {
+      weight: lastWeight,
+      targetReps: repLow,
+      note: `Below your best-ever volume at ${lastWeight}${unit} (best: ${bestVolumeAtWeight}, last time: ${lastVolume}) — repeat this weight and work back up before progressing.`,
     };
   }
 
   return {
     weight: lastWeight,
     targetReps: repLow,
-    note: `Missed the ${repLow}-rep target last time — repeat this weight before progressing.`,
+    note: `Missed the ${repLow}-rep target on at least one set last time — repeat this weight before progressing.`,
   };
+}
+
+function volumeOf(sets) {
+  return sets.reduce((sum, s) => sum + s.weight * s.reps, 0);
 }
 
 function round(value, unit) {

@@ -1,5 +1,5 @@
-import { DB, Auth } from './db.js?v=10';
-import { suggestNext } from './overload.js?v=10';
+import { DB, Auth } from './db.js?v=11';
+import { suggestNext } from './overload.js?v=11';
 
 const SESSION_TYPES = {
   Upper: { label: 'Upper Body', logsExercises: true },
@@ -393,7 +393,7 @@ async function renderSessionEditor() {
 async function renderEntryBlock(entry, idx, exMap, session) {
   const ex = exMap[entry.exerciseId];
   if (!ex) return '';
-  const history = await lastEntryForExercise(ex.id, session.id, session.date);
+  const history = await allEntriesForExercise(ex.id, session.id, session.date);
   const suggestion = suggestNext(ex, history);
   const sets = entry.sets || [];
   return `
@@ -422,13 +422,14 @@ async function renderEntryBlock(entry, idx, exMap, session) {
   `;
 }
 
-async function lastEntryForExercise(exerciseId, excludeSessionId, beforeDate) {
+// Every past entry for this exercise, oldest first — the overload algorithm needs the
+// full history (to find your best-ever volume at a given weight), not just the last time.
+async function allEntriesForExercise(exerciseId, excludeSessionId, beforeDate) {
   const sessions = await DB.all('sessions');
   const candidates = sessions
     .filter((s) => s.id !== excludeSessionId && s.date <= beforeDate && (s.entries || []).some((e) => e.exerciseId === exerciseId))
-    .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : (b.id - a.id)));
-  if (candidates.length === 0) return null;
-  return candidates[0].entries.find((e) => e.exerciseId === exerciseId);
+    .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : (a.id - b.id)));
+  return candidates.map((s) => s.entries.find((e) => e.exerciseId === exerciseId));
 }
 
 async function saveSession(session) {
