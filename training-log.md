@@ -61,6 +61,8 @@ Design principles: keep lower-body gym days away from any combo (double-session)
 
 **Deload rule:** reduce volume ~40% if performance stalls or drops for 2 straight sessions on a lift.
 
+**How "double progression" actually decides now (updated 2026-08-31):** the app doesn't just look at your last session — it compares last session's total volume (sum of weight × reps across all sets) at your current working weight against the *best* volume you've ever logged at that same weight, across your whole history. Add weight only once you've matched or beaten your best-ever volume at this weight AND topped out the rep range on every set. If your last session's volume came in below your proven best at that weight (an off day, fatigue, etc.), the app flags it and has you repeat the weight rather than either progressing or quietly treating it as normal — the benchmark is your best, not just whatever happened last time.
+
 Weight increments and starting weights live in the app's Exercises tab (per-lift, editable) — this table is the reference for exercise selection, set/rep targets, and progression style. As you log sessions, this file's "Next Targets" section below reflects the app's live suggestions so you have a written record even without opening it.
 
 ### Muay Thai
